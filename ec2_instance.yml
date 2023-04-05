@@ -1,0 +1,52 @@
+#Before running the script, make sure that you have configured your AWS credentials by setting the AWS_ACCESS_KEY_ID and
+#AWS_SECRET_ACCESS_KEY environment variables, or by using an EC2 instance profile with the necessary permissions.
+#You can also modify the variables in the script to customize the instance type, AMI, security group and keypair names, and the region.
+
+---
+- name: Provision an EC2 Instance with security group and keypair in Mumbai region
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars:
+    instance_type: t2.micro
+    security_group_name: my-security-group
+    keypair_name: my-keypair
+    ami_id: ami-08d70e59c07c61a3e # Ubuntu 18.04 LTS
+    region: ap-south-1 # Mumbai region
+  tasks:
+  - name: Create a security group
+    ec2_group:
+      name: "{{ security_group_name }}"
+      description: "Security group for my EC2 instance"
+      region: "{{ region }}"
+      rules:
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          from_port: 80
+          to_port: 80
+          cidr_ip: 0.0.0.0/0
+    register: security_group
+
+  - name: Create a keypair
+    ec2_key:
+      name: "{{ keypair_name }}"
+      region: "{{ region }}"
+    register: keypair
+
+  - name: Launch an EC2 instance
+    ec2:
+      key_name: "{{ keypair_name }}"
+      group_id: "{{ security_group.group_id }}"
+      instance_type: "{{ instance_type }}"
+      image: "{{ ami_id }}"
+      wait: true
+      region: "{{ region }}"
+      count: 1
+    register: ec2_instance
+
+  - name: Print the public IP address of the EC2 instance
+    debug:
+      var: ec2_instance.instances[0].public_ip_address
