@@ -1,0 +1,22 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  tasks:
+
+    - name: Provision a set of instance
+      ec2:
+        key_name: "ansible"
+        group: ansible-SSG
+        instance_type: t2.micro
+        image: ami-0376ec8eacdf70aae
+        wait: true
+        exact_count: 1
+        count_tag:
+          Name: Demo
+        instance_tags:
+          Name: Demo
+      register: ec2_info
+
+    - debug:
+        msg: "{{ec2_info}}"
