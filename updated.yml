@@ -1,0 +1,46 @@
+---
+- name: Create EC2 Instance
+  hosts: localhost
+  gather_facts: False
+
+  vars:
+    instance_type: t2.micro
+    ami_id: ami-06e6b44dd2af20ed0 # Amazon Linux 2 AMI (HVM), SSD Volume Type
+    keypair_name: my-keypair-test
+    security_group_name: my-security-group-test
+    region: ap-south-1
+    instance_name: myinstance
+  tasks:
+    - name: Create security group
+      ec2_group:
+        name: "{{ security_group_name }}"
+        description: "Security group for my EC2 instance"
+        region: "{{ region }}"
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+
+    - name: Create key pair
+      ec2_key:
+        name: "{{ keypair_name }}"
+        region: "{{ region }}"
+      register: ec2_keypair
+
+    - name: Launch EC2 instance
+      ec2:
+        key_name: "{{ keypair_name }}"
+        instance_type: "{{ instance_type }}"
+        image: "{{ ami_id }}"
+        wait: true
+        count: 1
+        instance_tags:
+          Name: "{{ instance_name }}"
+        region: "{{ region }}"
+        group: "{{ security_group_name }}"
+      register: ec2_instance
+
+    - name: Display Public IP address
+      debug:
+        var: ec2_instance.instances[0].public_ip_address
